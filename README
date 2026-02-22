@@ -1,0 +1,124 @@
+This is the next version for rldns server that I developed in 2018, the new version is : rldns-1.4
+
+rldns 1.4 (Released February 2026)
+(c) Copyright by Indodev All Rights Reserved 
+Developed by : Antonius (w1sdom)
+www.bluedragonsec.com
+indodev.asia
+
+WHAT IS RLDNS ?
+rldns is an open source lightweight DNS server for linux, netbsd, freebsd, and openbsd. Runs on x86 and x86_64 architecture
+
+INSTALLATION
+To install rldns, just type : ./configure && make && make install
+
+FEATURES
+- A Record Support
+- CNAME Record Support
+- MX Record Support
+- NS Record Support
+- Lightweight & Minimalist
+- Easy Installation
+- Flexible Configuration
+- Security Audited (fuzzing (using honggfuzz) is on progress)
+- DNS Load Balancing Support
+
+WHERE TO DOWNLOAD RLDNS ?
+https://rldns.sourceforge.net
+https://github.com/bluedragonsecurity/rldns
+https://indodev.asia/downloads/rldns-1.4.tar.bz2
+https://www.bluedragonsec.com/files/rldns-1.4.tar.bz2
+
+PATCH NOTES FOR RLDNS-1.4
+- fix 9 heap based buffer overflow
+- adding validation after recvfrom
+
+CONFIGURATION
+Once installed, you may configure rldns.conf at /usr/local/rldns/rldns.conf. Each keyword(s) on rldns.conf:
+- port keyword is used to specify dns server port
+- worker keyword used to specify how many worker(s) will you use
+- version keyword is mark of rldns version
+- zones keyword used to specify path of zone files (should inside rldns directory)
+- dns1 and dns2 keyword(s) are used to specify another dns server for rldns to dig, if no record found for a domain request
+- resolvertype keyword to determine resolver type, suggested resolver type is 2 for best a name load balancing resolver performance
+
+Below is an example of correct rldns.conf configuration:
+
+;default rldns Configuration File
+;use comma to put comment(s) 
+;recommended setting with 2 or 3 workers
+port 53
+worker 1
+version "RLDNS-1.4"
+;all zone files must be on zones directory, otherwise it will be ignored
+zones zones/*.zone
+dns1 8.8.4.4
+dns2 8.8.8.8
+;a name resolver type can be 1 or 2 
+;Resolver Type 1, if more than 1 ip address for a name to resolve, this will do a dns based load balancing without randomizing ip addresses (for a name request only)
+;Resolver Type 2, if more than 1 ip address for a name request to resolve, this will randomize multiple ip sequences for dns based load balancing (for a name request only)
+;By default, resolver type is 2 (suggested resolver type is 2 for best a name load balancing resolver performance)
+resolvertype 2
+
+ZONE FILES
+Each zone file for each domain located at /usr/local/rldns/zones. A zone file for a domain must have .zone extension.
+A zone file should starts with  keyword : "masterzone"  followed by a domain name. Format: masterzone <domain name>
+
+A RECORD
+Format :  Arecord  <ip address>
+To add an A record, keyword "Arecord" must preceed an ip address.
+Maximal A records for each domain is 18. To add a C name, use keyword:"CNAMErecord" followed by c name record for domain.
+
+MX
+Format: MXrecord <name>
+To add MX, use keyword:"MXrecord" followed by mx record name.  
+
+NS RECORD
+Format: 
+- NSrecord <name>    
+or 
+- NSrecord <name> <ip address>
+To add ns record, use keyword: "NSrecord" followed by name.
+
+Below is example of correct zone file configuration for example1.com, note ! above configuration should be saved as example1.com.zone at /usr/local/rldns/zones folder 
+
+;example1.com testing zone file for rldns daemon
+;use comma to put comment(s)
+masterzone example1.com
+;you can provide a record up to 18 (max is 18)
+Arecord 10.10.0.1
+Arecord 10.10.1.2
+Arecord 192.168.1.2
+Arecord 192.168.2.2
+Arecord 192.168.2.3
+Arecord 172.10.10.1
+Arecord 208.79.92.177
+Arecord 208.79.92.178
+Arecord 208.79.92.179
+Arecord 208.79.92.180
+Arecord 208.79.92.181
+Arecord 208.79.92.182
+Arecord 208.79.92.183
+Arecord 208.79.92.184
+Arecord 208.79.92.185
+Arecord 208.79.92.186
+CNAMErecord www
+CNAMErecord blog
+CNAMErecord mail
+MXrecord smtp
+NSrecord ns1 192.168.1.1 
+NSrecord ns2 192.168.1.2
+NSrecord ns3 192.168.1.3
+NSrecord ns4 192.168.1.4
+
+ 
+
+HOW TO RUN RLDNS ?
+
+/usr/local/rldns/rldns
+
+
+
+
+
+

@@ -1,0 +1,24 @@
+INSTALLATION
+
+STANDARD INSTALL :
+
+sudo ./configure
+sudo make
+sudo make install
+
+
+TO VIEW CONFIGURE HELP :
+
+./configure --help
+
+
+CONFIGURATION
+
+rldns configuration examples can be found on zones directory. 
+For more complete documentation about installation and configuration, you can find at http://www.ringlayer.net
+
+RUNNING
+
+to start rldns just type : /usr/local/rldns/rldns
+
+

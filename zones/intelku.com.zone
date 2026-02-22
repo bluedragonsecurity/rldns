@@ -1,0 +1,9 @@
+;example zone file
+masterzone intelku.com
+Arecord 199.167.29.207
+CNAMErecord blog
+CNAMErecord www
+CNAMErecord mail
+MXrecord mail
+NSrecord ns1 199.167.29.207
+

@@ -1,0 +1,418 @@
+#!/usr/bin/perl -U
+=pod
+ * rldns 1.4 - self made configure script
+ *  (c) Copyright by Indodev All Rights Reserved 
+ * indodev.asia
+ * Developed by Antonius (w1sd0m) - bluedragonsec.com
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+=cut
+use strict;
+use warnings;
+use Time::HiRes qw(usleep nanosleep);
+use User::pwent;
+use File::Copy;
+
+#global variables
+my $os;
+my $architecture;
+my $last_probably_not_exist_header;
+my $usleep_time = 100000;
+my $configure_prefix;
+my $rldns_user = "rldns";
+my $rldns_prefix = "/usr/local/";
+my $compiler = "undef";
+#eof global variables
+
+sub checking_required_headers()
+{	
+	my $tampilan_header;
+	my $res;
+	my $item;
+	my $exist;
+	print "\nchecking required headers...\n";
+	usleep($usleep_time);
+	open(CEK_HEADERS, "cat src/headers.h | grep '.h>' |");
+      	while (<CEK_HEADERS>) {
+	       	$tampilan_header .=  $_;
+		my @val = split /</, $tampilan_header;
+		foreach $item (@val) {
+				if (index($item, "include") == -1) {
+				chomp($item);
+				chop($item);
+				if ($item=~/prctl/ && $os!~/inux/) {
+					print "operating system is bsd, prctl not checked\n";
+				}
+				else { 	
+					print "checking " . $item . "...";
+					$exist = 0;	
+					usleep($usleep_time);
+					if (-e "/usr/include/$item") {
+						print " yes\n";
+					}
+					else {
+						if ($architecture=~/64/) {
+							if (-e "/usr/include/x86_64-linux-gnu/$item") {
+								print " yes\n";
+							}
+							else {
+								$last_probably_not_exist_header = $item;
+								print " no ! possible problem later !\n";	
+							}
+						}
+						elsif($architecture =~/86/) {
+							if (-e "/usr/include/i386-linux-gnu/$item" || -e "/usr/local/include/i386-linux-gnu/$item") {
+								print " yes\n";
+							}
+							elsif (-e "/usr/include/i486-linux-gnu/$item" || -e "/usr/local/include/i486-linux-gnu/$item") {
+								print " yes\n";
+							}
+							elsif (-e "/usr/include/i586-linux-gnu/$item" || -e "/usr/local/include/i586-linux-gnu/$item") {
+								print " yes\n";
+							}
+							elsif (-e "/usr/include/i686-linux-gnu/$item" || -e "/usr/local/include/i686-linux-gnu/$item") {
+								print " yes\n";
+							}
+							else {
+								$last_probably_not_exist_header = $item;
+								print " no ! possible problem later !\n";	
+							}
+						}	
+					        elsif($architecture =~/ar/) {
+						    if (-e "/usr/include/arm-linux-gnueabihf/$item") {
+							print " yes\n";
+						    }
+
+						}
+					}
+				}
+			}
+		}	
+	}
+        close(CEK_HEADERS);                            
+}
+
+sub checking_platform_and_compiler()
+{
+	my $my_os = "undef";
+
+	print "checking operating system and architecture... ";
+	open(CEK_K3RN3L, "uname -a |");
+        $my_os = <CEK_K3RN3L>; 
+	usleep($usleep_time);
+	close(CEK_K3RN3L);
+	if($my_os =~ /Linux/) {
+		$os = "linux";
+	}
+	elsif ($my_os =~ /BSD/) {
+		$os = "bsd family";
+	}
+	else {
+		print "\n[-] configure error ! your operating system not supported !\n";		
+		exit;
+	}
+	if ($my_os=~ /amd64/ or $my_os=~ /x86_64/ or $my_os=~ /x64/) {
+		$architecture = "x64";
+	}	
+	elsif($my_os =~ /i386/ or $my_os =~ /i486/ or $my_os =~ /i586/ or $my_os =~ /i686/) {
+		$architecture = "x86";
+	}
+	elsif($my_os =~ /armv/) {
+		$architecture = "arm";
+	}
+	else {
+		print "\n[-] configure error ! your platform not supported !\n";	
+	}
+	print $os . " on " . $architecture;	
+	print "\nchecking for gcc... ";
+	usleep($usleep_time);
+	if (-e "/usr/bin/gcc" ||  -e "/usr/local/bin/gcc" || -e "/bin/gcc") {
+		$compiler = "gcc";		
+		print "yes";
+	}
+	else {
+		print "no";
+		print "\nchecking for alternative clang compiler...";		
+		if (-e "/usr/bin/cc" ||  -e "/usr/local/bin/cc" || -e "/bin/cc") {
+			$compiler = "clang";
+			print "yes";
+		}
+		else {
+			print "\n[-] configure error ! gcc or clang not found ! please install gcc or clang !\n";	
+			exit;
+		}
+	}
+}
+
+sub print_config_summary()
+{
+	print "=====================\n";
+	print "Configuration Summary";
+	print "\n=====================\n";
+	print "[+] os : $os\n";
+	print "[+] architecture : $architecture\n";
+	print "[+] rldns user : $rldns_user\n";
+	print "[+] rldns prefix : $rldns_prefix\n";
+	print "[+] compiler : $compiler\n";
+}
+
+sub print_configure_help()
+{
+	print "rldns-1.1 configure script\n";
+	print "\nUsage : ./configure [OPTION]";
+	print "\n\nAvailable options :";
+	print "\n\t-h\t\t\t--help\t\t\tprint this help and exit";
+	print "\n\t-V\t\t\t--version\t\tprint rldns version";
+	print "\n\t--prefix=PREFIX\t\t\t\t\tset rldns intallation prefix";
+	print "\n\t--user=USER\t\t\t\t\tset user to run rldns";
+	print "\n\n";
+}
+
+sub print_rldns_version()
+{
+	my $ver = "
+ 	* rldns 1.1
+ 	*  (c) Copyright by RingLayer All Rights Reserved
+ 	* Developed by Antonius  (Ringlayer)
+ 	* 
+ 	* 
+ 	* Official Website : www.ringlayer.net
+ 	* 
+ 	*
+ 	* This program is free software; you can redistribute it and/or modify
+ 	* it under the terms of the GNU General Public License as published by
+ 	* the Free Software Foundation; either version 2 of the License, or
+ 	* (at your option) any later version.
+	*
+ 	* This program is distributed in the hope that it will be useful,
+ 	* but WITHOUT ANY WARRANTY; without even the implied warranty of
+ 	* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ 	* GNU General Public License for more details.
+ 	*
+ 	* You should have received a copy of the GNU General Public License
+ 	* along with this program; if not, write to the Free Software
+ 	* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA\n\n";	
+	print $ver;
+}
+
+#arguments processing
+my $num_args = $#ARGV + 1;
+my $i;
+if ($num_args > 0) {
+	for ($i = 0;$i < $num_args;$i+=1) {
+		if ($ARGV[$i] =~/-help/) {
+			print_configure_help();	
+			exit;			
+		}	
+		elsif ($ARGV[$i] =~/-help/) {
+			my @aray = split("=", $ARGV[$i]);	
+			my $ar_size = $#aray;
+			if ($ar_size > 0) {
+				if (index($aray[1], "/") == -1) {
+					print "configure: error: incorrect path\n";
+					exit;
+				}
+				else {
+					$rldns_prefix = $aray[1];
+				}
+			}
+		}
+		elsif ($ARGV[$i] =~/-h/) {
+			print_configure_help();	
+			exit;			
+		}
+		elsif ($ARGV[$i] =~/-V/) {
+			print_rldns_version();	
+			exit;			
+		}
+		elsif ($ARGV[$i] =~/-user/) {
+			my @aray = split('=', $ARGV[$i]);
+			my $ar_size = $#aray;
+			if ($ar_size > 0) {
+				my $pw = getpwnam($aray[1]) || die "configure: error: no user $aray[1] at /etc/passwd please add user $aray[1]\n";
+				$rldns_user = $pw->name;
+			}
+		}
+	}
+}
+
+sub _cleaning_ex_op()
+{
+	system("rm -rf tmp;rm -f src/test");
+}
+
+sub patch_source_code_set_user()
+{
+	my $fh_file = "src/vars.h";
+	my $line = "";
+	my $file = "";
+	my $tmp_file = "";
+	my $new_file = "";
+	my $new_str = "";
+
+	system("mkdir tmp"); 
+	if (! -e "tmp") {
+		print "configure: error: failed to patch source code at src, please change permission\n";
+		exit;		
+	}	
+	if ($rldns_user ne "rldns") {
+		print "configure: patching rldns source\n";	
+		if ($os=~/bsd/) {	
+			$fh_file = "tmp/rldns.c";			
+			$file = "src/rldns.c";
+			copy($file, $fh_file) or die "configure: error: failed to patch source code at src, please change permission\n";
+		}
+		else {
+			$fh_file = "tmp/vars.h";			
+			$file = "src/vars.h";
+			copy($file, $fh_file) or die "configure: error: failed to patch source code at src, please change permission\n";
+		}
+		system("touch src/test");
+		my $check = "src/test";
+		unless (-e $check) {		
+			print ("configure: error: failed to patch source code at src, please change permission\n");
+			exit;
+		}	
+		open(my $fh, $fh_file) || die "configure: error: failed to patch source code at src, please change permission\n";
+		open(my $fh2, '>', $file);
+		while ($line = <$fh>) {
+			chomp($line);
+			if ($line=~/static const char \*user =/) {
+				$new_str = "static const char *user = \"$rldns_user\";";
+			}
+			else {
+				$new_str = $line;	
+			}
+			print $fh2 $new_str."\n";
+		}
+		close $fh;
+		close $fh2		
+	}
+}
+
+sub generate_makefile_linux()
+{
+	my $fh;	
+	my $file = "Makefile";
+	if (-e "$rldns_prefix/rldns.bak") {
+		system("rm -rf $rldns_prefix/rldns.bak");	
+	}	
+	if (-e "$rldns_prefix/rldns") {
+		system("mv $rldns_prefix/rldns $rldns_prefix/rldns.bak");
+	}	
+my $makefile = 
+"OBJ = obj
+SRC = src
+
+all : rldns
+
+rldns : main.o  
+	gcc -Wall -fPIC -pthread -fstack-protector-all -o rldns \$(OBJ)/main.o 
+
+main.o : \$(SRC)/main.c \$(SRC)/vars.h \$(SRC)/structs.h \$(SRC)/oops.h \$(SRC)/headers.h 
+	gcc -Wall -fPIC -pthread -fstack-protector-all -c \$(SRC)/main.c -o \$(OBJ)/main.o 
+
+clean: 
+	rm -f \$(OBJ)/*
+
+install:
+	rm -rf $rldns_prefix/rldns;mkdir $rldns_prefix/rldns
+	mkdir $rldns_prefix/rldns/zones		
+	cp rldns $rldns_prefix/rldns
+	cp rldns.conf $rldns_prefix/rldns
+	cp zones/* $rldns_prefix/rldns/zones
+	cp docs/rldns.1 /usr/share/man/man1";
+	open($fh, '>', $file);
+	print $fh $makefile."\n";
+	close $fh;
+}
+
+sub generate_makefile_for_bsd()
+{
+	my $what = "unknown";
+	my $fh;	
+	my $file = "Makefile";
+	if (-e "$rldns_prefix/rldns.bak") {
+		system("rm -rf $rldns_prefix/rldns.bak");	
+	}	
+	if (-e "$rldns_prefix/rldns") {
+		system("mv $rldns_prefix/rldns $rldns_prefix/rldns.bak");
+	}	
+	if ($compiler =~/clan/) {
+		$what = "cc";
+	}
+	elsif ($compiler =~/gc/) {
+		$what = "gcc";
+	}
+	else {
+		print "configure error : no compiler !";
+		exit;
+	}
+	my $bsd_makefile_str = 
+"OBJ = obj
+SRC = src
+
+all : rldns
+
+main.o : \$(SRC)/main.c \$(SRC)/vars.h \$(SRC)/structs.h \$(SRC)/oops.h \$(SRC)/headers.h 
+	cd ..;$what -Wall -fPIC -pthread -fstack-protector-all -c \$(SRC)/main.c -o \$(OBJ)/main.o
+
+rldns : main.o  
+	cd ..;$what -Wall -fPIC -pthread -fstack-protector-all -o rldns \$(OBJ)/main.o 
+
+clean: 
+	rm -f \$(OBJ)/*
+
+install:
+    rm -rf $rldns_prefix/rldns
+	mkdir $rldns_prefix/rldns
+	mkdir $rldns_prefix/rldns/zones		
+	cd ..;cp rldns $rldns_prefix/rldns
+	cd ..;cp rldns.conf $rldns_prefix/rldns
+	cd ..;cp zones/* $rldns_prefix/rldns/zones
+	cd ..;cp docs/rldns.1 /usr/share/man/man1";
+	open($fh, '>', $file);
+	print $fh $bsd_makefile_str."\n";
+	close $fh;
+}
+
+sub check_rldns_user_if_not_exist_create()
+{
+	my $pw = getpwnam("rldns");
+	if (not defined $pw) {
+		print "\nconfigure : rldns user not found !\ncreating user rldns\n";
+		system("adduser rldns");
+	}	
+}
+
+checking_platform_and_compiler();
+checking_required_headers();
+patch_source_code_set_user();
+if ($rldns_user eq "rldns") {
+	check_rldns_user_if_not_exist_create();
+}
+if ($os =~/bsd/) {
+	generate_makefile_for_bsd();
+}
+else {
+	generate_makefile_linux();
+}
+_cleaning_ex_op();
+system("./setenv");
+print_config_summary();
+
+
+

@@ -1,0 +1,10 @@
+;ringlayer.com.zone example zone file for rldns daemon
+;use comma to put comment(s)
+masterzone ringlayer.com
+Arecord 199.167.29.207
+CNAMErecord blog
+CNAMErecord www
+CNAMErecord mail
+MXrecord mail
+NSrecord ns1 199.167.29.207 
+NSrecord ns2 199.167.29.207
