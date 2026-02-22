@@ -35,6 +35,7 @@ https://www.bluedragonsec.com/files/rldns-1.4.tar.bz2
 PATCH NOTES FOR RLDNS-1.4
 - fix 9 heap based buffer overflow
 - adding validation after recvfrom
+- fuzzed using honggfuzz
 
 CONFIGURATION
 Once installed, you may configure rldns.conf at /usr/local/rldns/rldns.conf. Each keyword(s) on rldns.conf:
