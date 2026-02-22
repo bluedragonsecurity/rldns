@@ -9,6 +9,9 @@ indodev.asia
 WHAT IS RLDNS ?
 rldns is an open source lightweight DNS server for linux, netbsd, freebsd, and openbsd. Runs on x86 and x86_64 architecture
 
+OLD VERSIONS
+old versions available at https://github.com/bluedragonsecurity/rldns_archives
+
 INSTALLATION
 To install rldns, just type : ./configure && make && make install
 
