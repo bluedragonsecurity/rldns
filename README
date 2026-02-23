@@ -33,7 +33,7 @@ https://indodev.asia/downloads/rldns-1.4.tar.bz2
 https://www.bluedragonsec.com/files/rldns-1.4.tar.bz2
 
 PATCH NOTES FOR RLDNS-1.4
-- fix 9 heap based buffer overflow
+- fix 9 heap based buffer over read (out of bounds read)
 - adding validation after recvfrom
 - fuzzed using honggfuzz
 
